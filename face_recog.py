@@ -56,26 +56,59 @@ def compare_faces(known_face_encodings, known_face_names):
             name = known_face_names[first_match_index]
             print(name)
     
-def save_face_image(pil_image, face_locations):
+def save_face_image(face_locations):
     margin = 15
+
+    known_face_encodings, known_face_names = load_known_faces()
     # read id file to keep track of the last id for students
     with open(ID_FILE, mode='r') as f:
-        person_id = int(f.readline()) + 1
-    person_id = 1
+        person_id = int(f.readline())
+    
     for (top, right, bottom, left) in face_locations:
         cropped_image = pil_image.crop((left - margin, top - margin, right + margin, bottom + margin))
         cropped_image.save('known_faces/' + str(person_id) + '.jpg')
         person_id = person_id + 1
+
+    with open(ID_FILE, mode='w') as f:
+        f.write(str(person_id))
+
+def save_unknown_faces(unknown_face_locations, unknown_face_encodings):
+    margin = 15
+    
+    known_face_encodings, known_face_names = load_known_faces()
+
+    # read id file to keep track of the last id for students
+    with open(ID_FILE, mode='r') as f:
+        person_id = int(f.readline())
+
+    for (top, right, bottom, left), unknown_face_encoding in zip(unknown_face_locations, unknown_face_encodings):
+
+        matches = face_recognition.compare_faces(known_face_encodings, unknown_face_encoding)
+        print("face found")
+        if not all(matches):
+            cropped_image = pil_image.crop((left - margin, top - margin, right + margin, bottom + margin))
+            new_image_path = 'known_faces/' + str(person_id) + '.jpg'
+            cropped_image.save(new_image_path)
+            print('face data is saved to', str(new_image_path))
+            person_id = person_id + 1
+
+    print("all the face data in the photo is saved. ")
+
     with open(ID_FILE, mode='w') as f:
         f.write(str(person_id))
 
 if __name__ == '__main__':
-    image_path = 'sample.jpg'
+
+    # loading image
+    image_path = 'sample_4.jpg'
     image = face_recognition.load_image_file(image_path)
     face_locations = face_recognition.face_locations(image)
     face_encodings = face_recognition.face_encodings(image, face_locations)
     pil_image = Image.fromarray(image)
-    known_face_encodings, known_face_names = load_known_faces()
-    save_face_image(pil_image, face_locations)
-    draw_boxes(pil_image, face_locations, face_encodings, known_face_encodings, known_face_names)
+    pil_image.show()
+
+    # known_face_encodings, known_face_names = load_known_faces()
+    # save_face_image(face_locations)
+    # draw_boxes(pil_image, face_locations, face_encodings, known_face_encodings, known_face_names)
     # compare_faces(known_face_encodings, known_face_names)
+    save_unknown_faces(face_locations, face_encodings)
