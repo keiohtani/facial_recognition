@@ -1,0 +1,28 @@
+{
+    "pageSize" : 30, 
+    "pageToken" : null,
+    "filters" : {
+        "contentFilter" : {
+            "includedContentCategories": ["PEOPLE"]
+        },
+        "mediaTypeFilter": {
+            "mediaTypes": ["PHOTO"]
+        },
+        "dateFilter": {
+            "ranges":[
+                {
+                    "startDate": {
+                        "year": 2017,
+                        "month": 9,
+                        "day": 1
+                    },
+                    "endDate": {
+                        "year": 2019,
+                        "month": 3,
+                        "day": 3
+                    }
+                }
+            ]
+        } 
+    }
+}
