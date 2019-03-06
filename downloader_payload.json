@@ -1,6 +1,6 @@
 {
-    "pageSize" : 30, 
-    "pageToken" : null,
+    "pageSize" : 100, 
+    "pageToken" : "",
     "filters" : {
         "contentFilter" : {
             "includedContentCategories": ["PEOPLE"]
@@ -14,7 +14,7 @@
                     "startDate": {
                         "year": 2017,
                         "month": 9,
-                        "day": 1
+                        "day": 5
                     },
                     "endDate": {
                         "year": 2019,
