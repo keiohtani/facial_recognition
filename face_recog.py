@@ -21,12 +21,19 @@ def save_face_from_directory(dir_path):
     person_id = 1
     dir_list = os.listdir(dir_path)
     for image_path in dir_list:
-        image_path = "sample.jpg"
         image = face_recognition.load_image_file(UNKNOWN_FACE_DIR + '/' + image_path)
         unknown_face_locations = face_recognition.face_locations(image)
         unknown_face_encodings = face_recognition.face_encodings(image, unknown_face_locations)
         pil_image = Image.fromarray(image)
         save_face_image(unknown_face_locations, pil_image, person_id)
+        os.remove(image_path)
+
+def save_face_from_path(path, photo_id):
+    image = face_recognition.load_image_file(path)
+    unknown_face_locations = face_recognition.face_locations(image)
+    unknown_face_encodings = face_recognition.face_encodings(image, unknown_face_locations)
+    pil_image = Image.fromarray(image)
+    save_face_image(unknown_face_locations, pil_image, photo_id)
 
 if __name__ == '__main__':
     save_face_from_directory(UNKNOWN_FACE_DIR)
