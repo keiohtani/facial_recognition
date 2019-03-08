@@ -1,5 +1,6 @@
 import face_recognition
 import signal
+from PIL import Image
 
 ID_FILE = 'ids.txt'
 UNKNOWN_FACE_DIR = 'unknown_faces'
