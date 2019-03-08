@@ -32,8 +32,8 @@ def download_people_images():
         nextPageToken = media_list['nextPageToken']
         payload['pageToken'] = nextPageToken
 
-    with open('id.txt') as f:
-        f.write(photo_id)
+    with open('id.txt', 'w') as f:
+        f.write(str(photo_id))
         print('Photo id', photo_id, 'is saved.')
 
     print('finished downloading pictures')
