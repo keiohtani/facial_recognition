@@ -14,7 +14,6 @@ class Facial_Recogition():
         self.model = Model(inputs=self.model.layers[0].input, outputs=self.model.layers[-2].output)
         self.dir_path = 'face_database'
         self.image_dir_list = os.listdir(self.dir_path)
-        self.realtime = True
 
         if ('.DS_Store' in self.image_dir_list):
             self.image_dir_list.remove('.DS_Store')
@@ -48,13 +47,9 @@ class Facial_Recogition():
         return np.array(dataset)
         
 
-    def recognize_vector_euclidean_distance(self, test_image):
+    def recognize_vector_euclidean_distance(self, test_representation):
 
         epsilon = 120
-        if self.realtime: 
-            test_representation = self.model.predict(preprocess_opencv_image(test_image))[0,:]
-        else:
-            test_representation = self.model.predict(preprocess_image_from_path(test_image))[0,:]
         euclidean_distance = self.np_dataset - test_representation
         euclidean_distance = np.sum(euclidean_distance * euclidean_distance, axis=1)
         euclidean_distance = np.sqrt(euclidean_distance)
@@ -64,13 +59,9 @@ class Facial_Recogition():
             print(self.image_dir_list[index])
 
 
-    def recognize_vector_cosine_distance(self, test_image):
+    def recognize_vector_cosine_distance(self, test_representation):
 
         epsilon = 0.4
-        if self.realtime: 
-            test_representation = self.model.predict(preprocess_opencv_image(test_image))[0,:]
-        else:
-            test_representation = self.model.predict(preprocess_image_from_path(test_image))[0,:]
         a = np.matmul(self.np_dataset, test_representation)
         b = np.sum(self.np_dataset * self.np_dataset, axis = 1)
         c = np.sum(np.multiply(test_representation, test_representation))
@@ -114,6 +105,9 @@ class Facial_Recogition():
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = self.face_haarcascade.detectMultiScale(gray, 1.3, 5)
 
+        if not any(faces):
+            return None
+
         for (x, y, w, h) in faces:
             cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
             roi_gray = gray[y:y+h, x:x+w]
@@ -123,10 +117,20 @@ class Facial_Recogition():
         return cropped_image
 
 
+    def recognize(self, image_path):
+        test_representation = self.model.predict(preprocess_image_from_path(image_path))[0,:]
+        self.recognize_vector_cosine_distance(test_representation)
+
+    
+    def recognize_realtime(self):
+        img = self.capture()
+        if img != None:
+            test_representation = self.model.predict(preprocess_opencv_image(img))[0,:]
+            self.recognize_vector_cosine_distance(img)
+
+
 if __name__ == '__main__':
-    # test_image = 'test.jpg'
-    img_dir = 'hello.jpg'
+    test_image_path = 'test.jpg'
     fr = Facial_Recogition()
-    test_image = fr.haarcascade_crop_face(cv2.imread(img_dir))
-    fr.recognize_vector_cosine_distance(test_image)
-    # fr.recognize_vector_euclidean_distance(test_image)
+    # fr.recognize(test_image_path)
+    fr.recognize_realtime()
