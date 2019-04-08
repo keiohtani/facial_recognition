@@ -5,21 +5,23 @@ import urllib.request
 
 UNKNOWN_FACE_PATH = 'uncropped_face_images'
 
+
 def download_people_images():
 
     service = authentication.get_authenticated_service()
 
     with open('downloader_payload.json') as f:
         payload = json.loads(f.read())
-    
+
     face_saver = Face_Saver()
-    
+
     while True:
         media_list = service.mediaItems().search(body=payload).execute()
         if 'mediaItems' not in media_list:  # when no items are found
             break
         for mediaItem in media_list['mediaItems']:
-            image_url = mediaItem['baseUrl'] # the size can be set by adding '=w2048-h1024' at the end of URL
+            # the size can be set by adding '=w2048-h1024' at the end of URL
+            image_url = mediaItem['baseUrl']
             try:
                 urllib.request.urlretrieve(image_url + '=w2000', 'temp.jpg')
                 face_saver.save_face_image('temp.jpg')
@@ -33,6 +35,7 @@ def download_people_images():
 
     face_saver.save_photo_id()
     print('finished downloading pictures')
+
 
 if __name__ == "__main__":
     download_people_images()

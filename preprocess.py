@@ -3,6 +3,7 @@ from keras.applications.vgg16 import preprocess_input
 from cv2 import resize
 import numpy as np
 
+
 def preprocess_image_from_path(image_path):
     img = load_img(image_path, target_size=(224, 224))
     img = img_to_array(img)
