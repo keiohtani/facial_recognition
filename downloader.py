@@ -1,10 +1,9 @@
+from opencv_face_detection import Face_Saver
 import authentication
 import json
 import urllib.request
-import face_recog
 
-
-UNKNOWN_FACE_PATH = 'unknown_faces'
+UNKNOWN_FACE_PATH = 'uncropped_face_images'
 
 def download_people_images():
 
@@ -13,10 +12,7 @@ def download_people_images():
     with open('downloader_payload.json') as f:
         payload = json.loads(f.read())
     
-    nextPageToken = ''
-    with open('id.txt') as f:
-        photo_id = int(f.readline())
-        print('Photo id', photo_id, 'is loaded.')
+    face_saver = Face_Saver()
     
     while True:
         media_list = service.mediaItems().search(body=payload).execute()
@@ -25,8 +21,8 @@ def download_people_images():
         for mediaItem in media_list['mediaItems']:
             image_url = mediaItem['baseUrl'] # the size can be set by adding '=w2048-h1024' at the end of URL
             try:
-                urllib.request.urlretrieve(image_url + '=w1024', 'temp.jpg')
-                photo_id = face_recog.save_face_from_path('temp.jpg', photo_id)
+                urllib.request.urlretrieve(image_url, 'temp.jpg')
+                face_saver.save_face_image('temp.jpg')
             except urllib.request.HTTPError as err:
                 print(err.code, 'error found.')
         if 'nextPageToken' not in media_list:
@@ -35,10 +31,7 @@ def download_people_images():
         nextPageToken = media_list['nextPageToken']
         payload['pageToken'] = nextPageToken
 
-    with open('id.txt', 'w') as f:
-        f.write(str(photo_id))
-        print('Photo id', photo_id, 'is saved.')
-
+    face_saver.save_photo_id()
     print('finished downloading pictures')
 
 if __name__ == "__main__":
