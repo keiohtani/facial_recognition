@@ -56,7 +56,8 @@ class Facial_Recogition():
 
         if euclidean_distance.min() < epsilon:
             index = np.argmin(euclidean_distance)
-            print(self.image_dir_list[index])
+            name = self.image_dir_list[index]
+            return name
 
 
     def recognize_vector_cosine_distance(self, test_representation):
@@ -69,52 +70,31 @@ class Facial_Recogition():
 
         if x.min() < epsilon:
             index = np.argmin(x)
-            print(self.image_dir_list[index])
+            name = self.image_dir_list[index]
+            return name
     
 
     def capture(self):
 
-        INTERVAL = 30
-        DEVICE_ID = 0  
-        ESC_KEY = 27
-        FRAME_RATE = 24
-        WINDOW_NAME = 'facial recognition'
-
-        cap = cv2.VideoCapture(DEVICE_ID)
+        cap = cv2.VideoCapture(0)
         end_flag, c_frame = cap.read()
-        # print('Press esc to exit.')
-
-        # while end_flag == True:
-
-        #     cv2.imshow(WINDOW_NAME, c_frame)
-
-        #     key = cv2.waitKey(INTERVAL)
-        #     if key == ESC_KEY:
-        #         break
-
-        #     end_flag, c_frame = cap.read()
-        
-        #exitting
-        cv2.imwrite('hello.jpg', c_frame)
-        cv2.destroyAllWindows()
-        cap.release()
-        return self.haarcascade_crop_face(c_frame)
+        cv2.imwrite('captured.jpg', c_frame)
+        return c_frame
     
 
     def haarcascade_crop_face(self, img):
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = self.face_haarcascade.detectMultiScale(gray, 1.3, 5)
+        cropped_image = []
 
-        if not any(faces):
-            return None
-
+        if faces == ():
+            return [], img, None
+        
         for (x, y, w, h) in faces:
             cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
-            roi_gray = gray[y:y+h, x:x+w]
-            roi_color = img[y:y+h, x:x+w]
             cropped_image = img[y:y+h, x:x+w]
 
-        return cropped_image
+        return cropped_image, img, faces
 
 
     def recognize(self, image_path):
@@ -122,15 +102,53 @@ class Facial_Recogition():
         self.recognize_vector_cosine_distance(test_representation)
 
     
-    def recognize_realtime(self):
-        img = self.capture()
-        if img != None:
+    def recognize_capture(self):
+        c_frame = self.capture()
+        img, c_frame, faces = self.haarcascade_crop_face(c_frame)
+        if img != []:
             test_representation = self.model.predict(preprocess_opencv_image(img))[0,:]
-            self.recognize_vector_cosine_distance(img)
+            self.recognize_vector_euclidean_distance(test_representation)
+
+
+    def recognize_realtime(self):
+
+        INTERVAL = 30
+        DEVICE_ID = 0  
+        ESC_KEY = 27
+        FRAME_RATE = 5
+        WINDOW_NAME = 'facial recognition'
+        SCALE = 1.0
+        COLOR = (0, 0, 255)
+
+        cap = cv2.VideoCapture(DEVICE_ID)
+        end_flag, c_frame = cap.read()
+        print('Press esc to exit.')
+
+        while end_flag == True:
+            
+            key = cv2.waitKey(INTERVAL)
+            if key == ESC_KEY:
+                break
+
+            cropped_image, c_frame, faces = self.haarcascade_crop_face(c_frame)
+
+            if cropped_image != []:
+                test_representation = self.model.predict(preprocess_opencv_image(cropped_image))[0,:]
+                name = self.recognize_vector_euclidean_distance(test_representation)
+                cv2.putText(c_frame, name, (faces[0, 0], faces[0, 1]), cv2.FONT_HERSHEY_DUPLEX, SCALE, COLOR)
+                print(name)
+            cv2.imshow(WINDOW_NAME, c_frame)
+            end_flag, c_frame = cap.read()
+        
+        cv2.imwrite('last_frame.jpg', c_frame)
+        cv2.destroyAllWindows()
+        cap.release()
 
 
 if __name__ == '__main__':
+
     test_image_path = 'test.jpg'
     fr = Facial_Recogition()
     # fr.recognize(test_image_path)
     fr.recognize_realtime()
+    # fr.recognize_capture()
