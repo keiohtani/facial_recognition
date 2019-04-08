@@ -1,4 +1,4 @@
-from opencv_face_detection import Face_Saver
+from face_recog import Face_Saver
 import authentication
 import json
 import urllib.request
@@ -21,7 +21,7 @@ def download_people_images():
         for mediaItem in media_list['mediaItems']:
             image_url = mediaItem['baseUrl'] # the size can be set by adding '=w2048-h1024' at the end of URL
             try:
-                urllib.request.urlretrieve(image_url, 'temp.jpg')
+                urllib.request.urlretrieve(image_url + '=w2000', 'temp.jpg')
                 face_saver.save_face_image('temp.jpg')
             except urllib.request.HTTPError as err:
                 print(err.code, 'error found.')
