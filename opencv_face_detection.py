@@ -2,13 +2,16 @@ import cv2 as cv
 import signal
 import os
 
-class face_saver:
+class Face_Saver:
 
     UNKNOWN_FACE_DIR = 'uncropped_people_images'
     KNOWN_FACE_DIR = 'cropped_face_images'
 
     def __init__(self):
         signal.signal(signal.SIGINT, self.keyboardInterruptHandler)
+        with open('id.txt') as f:
+            self.photo_id = int(f.readline())
+            print('Photo id', self.photo_id, 'is loaded.')
         self.face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
 
 
@@ -22,10 +25,6 @@ class face_saver:
 
 
     def save_face_from_directory(self, dir_path):
-
-        with open('id.txt') as f:
-            self.photo_id = int(f.readline())
-            print('Photo id', self.photo_id, 'is loaded.')
         
         dir_list = os.listdir(dir_path)
 
@@ -58,3 +57,9 @@ class face_saver:
             self.photo_id = self.photo_id + 1
 
         print('Completed a photo')
+
+    def save_photo_id(self):
+        with open('id.txt', 'w') as f:
+            print(self.photo_id)
+            f.write(str(self.photo_id))
+            print('Photo id', self.photo_id, 'is saved.')
