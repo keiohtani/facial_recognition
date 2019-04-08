@@ -6,7 +6,6 @@ import cv2
 import os
 import numpy as np
 
-
 class Facial_Recogition():
     
     def __init__(self):
@@ -17,8 +16,9 @@ class Facial_Recogition():
         self.image_dir_list = os.listdir(self.dir_path)
         if ('.DS_Store' in self.image_dir_list):
             self.image_dir_list.remove('.DS_Store')
-        print('.DS_Store is removed.')
-
+            print('.DS_Store is removed.')
+        self.np_dataset = self.load_database()
+        print('Database is loaded.')
 
 
     def calculate_distance(self, img1, img2):
@@ -59,19 +59,23 @@ class Facial_Recogition():
         cap.release()
 
 
-    def recognize_vector_euclidean_distance(self, test_image):
-
-        epsilon = 120
+    def load_database(self):
         
-        test_representation = self.model.predict(preprocess_image(test_image))[0,:]
         dataset = []
 
         for stored_image in self.image_dir_list:
             img_representation = self.model.predict(preprocess_image('face_database/' + stored_image))[0,:]
             dataset.append(img_representation)
+        
+        return np.array(dataset)
+        
 
-        dataset = np.array(dataset)
-        euclidean_distance = dataset - test_representation
+    def recognize_vector_euclidean_distance(self, test_image):
+
+        epsilon = 120
+        test_representation = self.model.predict(preprocess_image(test_image))[0,:]
+
+        euclidean_distance = self.np_dataset - test_representation
         euclidean_distance = np.sum(euclidean_distance * euclidean_distance, axis=1)
         euclidean_distance = np.sqrt(euclidean_distance)
 
@@ -83,19 +87,12 @@ class Facial_Recogition():
     def recognize_vector_cosine_distance(self, test_image):
 
         epsilon = 0.4
-        
         test_representation = self.model.predict(preprocess_image(test_image))[0,:]
-        dataset = []
-
-        for stored_image in self.image_dir_list:
-            img_representation = self.model.predict(preprocess_image('face_database/' + stored_image))[0,:]
-            dataset.append(img_representation)
-
-        dataset = np.array(dataset)
-        a = np.matmul(dataset, test_representation)
-        b = np.sum(dataset * dataset, axis = 1)
+        a = np.matmul(self.np_dataset, test_representation)
+        b = np.sum(self.np_dataset * self.np_dataset, axis = 1)
         c = np.sum(np.multiply(test_representation, test_representation))
         x = 1 - (a / (np.sqrt(b) * np.sqrt(c)))
+
         if x.min() < epsilon:
             index = np.argmin(x)
             print(self.image_dir_list[index])
@@ -104,5 +101,5 @@ class Facial_Recogition():
 if __name__ == '__main__':
     test_image = 'test.jpg'
     fr = Facial_Recogition()
-    # fr.recognize()
     fr.recognize_vector_cosine_distance(test_image)
+    # fr.recognize_vector_euclidean_distance(test_image)
