@@ -30,20 +30,6 @@ class Facial_Recogition():
         print('Database is loaded.')
         self.alignment = AlignDlib('models/landmarks.dat')
 
-    def calculate_distance(self, img1, img2):
-
-        epsilon = 0.40
-
-        img1_representation = self.model.predict(
-            preprocess_image_from_path(img1, self.input_size))[0, :]
-        img2_representation = self.model.predict(
-            preprocess_image_from_path(img2, self.input_size))[0, :]
-
-        # euclidean_distance = findEuclideanDistance(img1_representation, img2_representation)
-        cosine_similarity = self.findCosineDistance(
-            img1_representation, img2_representation)
-        return cosine_similarity
-
     def load_database(self):
 
         dataset = []
@@ -55,7 +41,7 @@ class Facial_Recogition():
 
         return np.array(dataset)
 
-    def recognize_vector_euclidean_distance(self, test_representation):
+    def find_euclidean_distance(self, test_representation):
 
         epsilon = 120
         euclidean_distance = self.np_dataset - test_representation
@@ -68,7 +54,7 @@ class Facial_Recogition():
             name = self.image_dir_list[index]
             return name
 
-    def recognize_vector_cosine_distance(self, test_representation):
+    def find_cosine_distance(self, test_representation):
 
         epsilon = 0.4
         a = np.matmul(self.np_dataset, test_representation)
@@ -81,10 +67,10 @@ class Facial_Recogition():
             name = self.image_dir_list[index]
             return name
 
-    def recognize(self, image_path):
+    def recognize_from_path(self, image_path):
         test_representation = self.model.predict(
             preprocess_image_from_path(image_path, self.input_size))[0, :]
-        self.recognize_vector_cosine_distance(test_representation)
+        self.find_cosine_distance(test_representation)
 
     def recognize_capture(self):
         c_frame = self.capture()
@@ -92,7 +78,7 @@ class Facial_Recogition():
         if img != []:
             test_representation = self.model.predict(
                 preprocess_opencv_image(img, self.input_size))[0, :]
-            self.recognize_vector_euclidean_distance(test_representation)
+            self.find_euclidean_distance(test_representation)
 
     def recognize_realtime(self):
 
@@ -100,7 +86,6 @@ class Facial_Recogition():
         DEVICE_ID = 0
         ESC_KEY = 27
         WINDOW_NAME = 'facial recognition'
-        SCALE = 1.0
         RED = (0, 0, 255)
         BLUE = (255, 0, 0)
 
@@ -125,7 +110,7 @@ class Facial_Recogition():
                 cropped_image = self.alignment.align(self.input_size, c_frame, bounding_box, landmarkIndices=AlignDlib.OUTER_EYES_AND_NOSE)
                 test_representation = self.model.predict(
                     preprocess_opencv_image(cropped_image, self.input_size))[0, :]
-                name = self.recognize_vector_cosine_distance(
+                name = self.find_cosine_distance(
                     test_representation)
                 cv2.putText(
                     c_frame, name, (bounding_box.left(), bounding_box.top()), cv2.FONT_HERSHEY_DUPLEX, SCALE, RED)
@@ -140,6 +125,6 @@ if __name__ == '__main__':
 
     test_image_path = 'test.jpg'
     fr = Facial_Recogition()
-    # fr.recognize(test_image_path)
+    # fr.recognize_from_path(test_image_path)
     fr.recognize_realtime()
     # fr.recognize_capture()
