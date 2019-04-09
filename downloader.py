@@ -5,9 +5,8 @@ import urllib.request
 
 UNKNOWN_FACE_PATH = 'uncropped_face_images'
 
-
 def download_people_images():
-
+    
     service = authentication.get_authenticated_service()
 
     with open('downloader_payload.json') as f:
@@ -24,7 +23,7 @@ def download_people_images():
             image_url = mediaItem['baseUrl']
             try:
                 urllib.request.urlretrieve(image_url + '=w2000', 'temp.jpg')
-                face_saver.save_face_image('temp.jpg')
+                face_saver.save_face_image_using_dlib('temp.jpg')
             except urllib.request.HTTPError as err:
                 print(err.code, 'error found.')
         if 'nextPageToken' not in media_list:
@@ -35,7 +34,6 @@ def download_people_images():
 
     face_saver.save_photo_id()
     print('finished downloading pictures')
-
 
 if __name__ == "__main__":
     download_people_images()
