@@ -23,7 +23,7 @@ def download_people_images():
             image_url = mediaItem['baseUrl']
             try:
                 urllib.request.urlretrieve(image_url + '=w2000', 'temp.jpg')
-                face_saver.save_face_image_using_dlib('temp.jpg')
+                face_saver.save_face_image('temp.jpg')
             except urllib.request.HTTPError as err:
                 print(err.code, 'error found.')
         if 'nextPageToken' not in media_list:
