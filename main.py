@@ -1,4 +1,5 @@
 # https://sefiks.com/2018/08/06/deep-face-recognition-with-keras/
+# https://medium.com/@sumantrajoshi/face-recognizer-application-using-a-deep-learning-model-python-and-keras-2873e9aa6ab3
 
 from preprocess import *
 from model import *
@@ -10,8 +11,8 @@ import numpy as np
 class Facial_Recogition():
 
     def __init__(self):
-        # self.model = Inception_Model()
-        self.model = VGG_face_model()
+        self.model, self.input_size = Inception_Model()
+        # self.model, self.input_size = VGG_face_model()
         self.dir_path = 'face_database'
         self.image_dir_list = os.listdir(self.dir_path)
 
@@ -29,9 +30,9 @@ class Facial_Recogition():
         epsilon = 0.40
 
         img1_representation = self.model.predict(
-            preprocess_image_from_path(img1))[0, :]
+            preprocess_image_from_path(img1, self.input_size))[0, :]
         img2_representation = self.model.predict(
-            preprocess_image_from_path(img2))[0, :]
+            preprocess_image_from_path(img2, self.input_size))[0, :]
 
         # euclidean_distance = findEuclideanDistance(img1_representation, img2_representation)
         cosine_similarity = self.findCosineDistance(
@@ -44,7 +45,7 @@ class Facial_Recogition():
 
         for stored_image in self.image_dir_list:
             img_representation = self.model.predict(
-                preprocess_image_from_path('face_database/' + stored_image))[0, :]
+                preprocess_image_from_path('face_database/' + stored_image, self.input_size))[0, :]
             dataset.append(img_representation)
 
         return np.array(dataset)
@@ -95,7 +96,7 @@ class Facial_Recogition():
 
     def recognize(self, image_path):
         test_representation = self.model.predict(
-            preprocess_image_from_path(image_path))[0, :]
+            preprocess_image_from_path(image_path, self.input_size))[0, :]
         self.recognize_vector_cosine_distance(test_representation)
 
     def recognize_capture(self):
@@ -103,7 +104,7 @@ class Facial_Recogition():
         img, c_frame, faces = self.haarcascade_crop_face(c_frame)
         if img != []:
             test_representation = self.model.predict(
-                preprocess_opencv_image(img))[0, :]
+                preprocess_opencv_image(img, self.input_size))[0, :]
             self.recognize_vector_euclidean_distance(test_representation)
 
     def recognize_realtime(self):
@@ -130,7 +131,7 @@ class Facial_Recogition():
 
             if cropped_image != []:
                 test_representation = self.model.predict(
-                    preprocess_opencv_image(cropped_image))[0, :]
+                    preprocess_opencv_image(cropped_image, self.input_size))[0, :]
                 name = self.recognize_vector_cosine_distance(
                     test_representation)
                 cv2.putText(

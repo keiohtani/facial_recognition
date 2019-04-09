@@ -4,21 +4,21 @@ from cv2 import resize
 import numpy as np
 
 # For VGG_16
-INPUT_SIZE = 224
+# INPUT_SIZE = 224
 
 # For Inception
 # INPUT_SIZE = 96
 
-def preprocess_image_from_path(image_path):
-    img = load_img(image_path, target_size=(INPUT_SIZE, INPUT_SIZE))
+def preprocess_image_from_path(image_path, input_size):
+    img = load_img(image_path, target_size=(input_size, input_size))
     img = img_to_array(img)
     img = np.expand_dims(img, axis=0)
-    # img = preprocess_input(img)
+    img = preprocess_input(img)
     return img
 
 
-def preprocess_opencv_image(image):
-    img = resize(image, (INPUT_SIZE, INPUT_SIZE))
+def preprocess_opencv_image(image, input_size):
+    img = resize(image, (input_size, input_size))
     img = np.expand_dims(img, axis=0)
-    # img = preprocess_input(img)
+    img = preprocess_input(img)
     return img

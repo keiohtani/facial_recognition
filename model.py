@@ -17,6 +17,9 @@ from utils import LRN2D
 
 
 def VGG_face_model():
+
+    input_size = 224
+
     model = Sequential()
     model.add(ZeroPadding2D((1, 1), input_shape=(224, 224, 3)))
     model.add(Convolution2D(64, (3, 3), activation='relu'))
@@ -62,14 +65,14 @@ def VGG_face_model():
     model.add(Flatten())
     model.add(Activation('softmax'))
     model.load_weights('vgg_face_weights.h5')
-    # remove the last two layers to get 128 dimensions vector
+    # remove the last two layers to get 2622 dimensions vector
     model = Model(
         inputs=model.layers[0].input, outputs=model.layers[-2].output)
-    return model
+    return model, input_size
 
 
 def Inception_Model():
-
+    input_size = 96
     myInput = Input(shape=(96, 96, 3))
 
     x = ZeroPadding2D(padding=(3, 3), input_shape=(96, 96, 3))(myInput)
@@ -337,8 +340,8 @@ def Inception_Model():
             model.get_layer(name).set_weights(weights_dict[name])
         elif model.get_layer(name) != None:
             model.get_layer(name).set_weights(weights_dict[name])
-
+    
     model = Model(
-        inputs=model.layers[0].input, outputs=model.layers[-2].output)
+        inputs=model.layers[0].input, outputs=model.layers[-3].output)
 
-    return model
+    return model, input_size
