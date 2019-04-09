@@ -10,10 +10,8 @@ import numpy as np
 class Facial_Recogition():
 
     def __init__(self):
+        # self.model = Inception_Model()
         self.model = VGG_face_model()
-        # remove the last two layers to get 128 dimensions vector
-        self.model = Model(
-            inputs=self.model.layers[0].input, outputs=self.model.layers[-2].output)
         self.dir_path = 'face_database'
         self.image_dir_list = os.listdir(self.dir_path)
 
@@ -89,9 +87,6 @@ class Facial_Recogition():
         faces = self.face_haarcascade.detectMultiScale(gray, 1.3, 5)
         cropped_image = []
 
-        if faces == ():
-            return [], img, None
-
         for (x, y, w, h) in faces:
             cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
             cropped_image = img[y:y+h, x:x+w]
@@ -113,36 +108,35 @@ class Facial_Recogition():
 
     def recognize_realtime(self):
 
-        INTERVAL = 30
+        INTERVAL = 100
         DEVICE_ID = 0
         ESC_KEY = 27
-        FRAME_RATE = 5
         WINDOW_NAME = 'facial recognition'
         SCALE = 1.0
         COLOR = (0, 0, 255)
 
         cap = cv2.VideoCapture(DEVICE_ID)
-        end_flag, c_frame = cap.read()
+        end_flag, frame = cap.read()
         print('Press esc to exit.')
 
-        while end_flag == True:
+        while end_flag:
 
             key = cv2.waitKey(INTERVAL)
             if key == ESC_KEY:
                 break
 
+            end_flag, c_frame = cap.read()
             cropped_image, c_frame, faces = self.haarcascade_crop_face(c_frame)
 
             if cropped_image != []:
                 test_representation = self.model.predict(
                     preprocess_opencv_image(cropped_image))[0, :]
-                name = self.recognize_vector_euclidean_distance(
+                name = self.recognize_vector_cosine_distance(
                     test_representation)
                 cv2.putText(
                     c_frame, name, (faces[0, 0], faces[0, 1]), cv2.FONT_HERSHEY_DUPLEX, SCALE, COLOR)
-                print(name)
+
             cv2.imshow(WINDOW_NAME, c_frame)
-            end_flag, c_frame = cap.read()
 
         cv2.imwrite('last_frame.jpg', c_frame)
         cv2.destroyAllWindows()
