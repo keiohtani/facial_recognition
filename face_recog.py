@@ -6,8 +6,6 @@ from align import AlignDlib
 
 class Face_Saver:
 
-    KNOWN_FACE_DIR = 'cropped_face_images'
-
     def __init__(self):
         signal.signal(signal.SIGINT, self.keyboardInterruptHandler)
         self.alignment = AlignDlib('models/landmarks.dat')

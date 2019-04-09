@@ -6,13 +6,17 @@ from model import *
 import cv2
 import os
 import numpy as np
+from align import AlignDlib
+
 
 
 class Facial_Recogition():
 
-    def __init__(self):
-        self.model, self.input_size = Inception_Model()
-        # self.model, self.input_size = VGG_face_model()
+    def __init__(self, model='VGG16'):
+        if model == 'Inception':
+            self.model, self.input_size = Inception_Model()
+        else: 
+            self.model, self.input_size = VGG_face_model()
         self.dir_path = 'face_database'
         self.image_dir_list = os.listdir(self.dir_path)
 
@@ -24,6 +28,7 @@ class Facial_Recogition():
         self.face_haarcascade = cv2.CascadeClassifier(
             'haarcascade_frontalface_default.xml')
         print('Database is loaded.')
+        self.alignment = AlignDlib('models/landmarks.dat')
 
     def calculate_distance(self, img1, img2):
 
@@ -76,24 +81,6 @@ class Facial_Recogition():
             name = self.image_dir_list[index]
             return name
 
-    def capture(self):
-
-        cap = cv2.VideoCapture(0)
-        end_flag, c_frame = cap.read()
-        cv2.imwrite('captured.jpg', c_frame)
-        return c_frame
-
-    def haarcascade_crop_face(self, img):
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        faces = self.face_haarcascade.detectMultiScale(gray, 1.3, 5)
-        cropped_image = []
-
-        for (x, y, w, h) in faces:
-            cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
-            cropped_image = img[y:y+h, x:x+w]
-
-        return cropped_image, img, faces
-
     def recognize(self, image_path):
         test_representation = self.model.predict(
             preprocess_image_from_path(image_path, self.input_size))[0, :]
@@ -114,7 +101,8 @@ class Facial_Recogition():
         ESC_KEY = 27
         WINDOW_NAME = 'facial recognition'
         SCALE = 1.0
-        COLOR = (0, 0, 255)
+        RED = (0, 0, 255)
+        BLUE = (255, 0, 0)
 
         cap = cv2.VideoCapture(DEVICE_ID)
         end_flag, frame = cap.read()
@@ -127,22 +115,26 @@ class Facial_Recogition():
                 break
 
             end_flag, c_frame = cap.read()
-            cropped_image, c_frame, faces = self.haarcascade_crop_face(c_frame)
 
-            if cropped_image != []:
+            # Detect face and return bounding box (type: dlib.rectangle)
+            bounding_box = self.alignment.getLargestFaceBoundingBox(c_frame)
+            
+            if bounding_box != None:
+                cv2.rectangle(c_frame, (bounding_box.left(), bounding_box.top()), (bounding_box.right(), bounding_box.bottom()), BLUE, 2)
+                # Transform image using specified face landmark indices and crop image to 96x96
+                cropped_image = self.alignment.align(self.input_size, c_frame, bounding_box, landmarkIndices=AlignDlib.OUTER_EYES_AND_NOSE)
                 test_representation = self.model.predict(
                     preprocess_opencv_image(cropped_image, self.input_size))[0, :]
                 name = self.recognize_vector_cosine_distance(
                     test_representation)
                 cv2.putText(
-                    c_frame, name, (faces[0, 0], faces[0, 1]), cv2.FONT_HERSHEY_DUPLEX, SCALE, COLOR)
+                    c_frame, name, (bounding_box.left(), bounding_box.top()), cv2.FONT_HERSHEY_DUPLEX, SCALE, RED)
 
             cv2.imshow(WINDOW_NAME, c_frame)
 
         cv2.imwrite('last_frame.jpg', c_frame)
         cv2.destroyAllWindows()
         cap.release()
-
 
 if __name__ == '__main__':
 
