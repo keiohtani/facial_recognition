@@ -45,14 +45,14 @@ class Facial_Recogition():
 
     def find_distance(self, test_representation, alg='cosine'):
         if alg == 'cosine':
-            epsilon = 0.3
+            epsilon = 0.023 if self.architecture == 'Inception' else 0.3 
             a = np.matmul(self.np_dataset, test_representation)
             b = np.sum(self.np_dataset * self.np_dataset, axis=1)
             c = np.sum(np.multiply(test_representation, test_representation))
             distance = 1 - (a / (np.sqrt(b) * np.sqrt(c)))
 
         elif alg == 'euclidean':
-            epsilon = 100
+            epsilon = 2.5 if self.architecture == 'Inception' else 100
             euclidean_distance = self.np_dataset - test_representation
             euclidean_distance = np.sum(
                 euclidean_distance * euclidean_distance, axis=1)
@@ -142,5 +142,5 @@ if __name__ == '__main__':
     test_image_path = 'test.jpg'
     fr = Facial_Recogition(architecture='Inception')
     # fr.recognize(test_image_path)
-    fr.recognize_realtime()
-    
+    fr.recognize()
+
