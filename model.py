@@ -68,7 +68,7 @@ def VGG_face_model():
     # remove the last two layers to get 2622 dimensions vector
     model = Model(
         inputs=model.layers[0].input, outputs=model.layers[-2].output)
-    return model, input_size
+    return model
 
 
 def Inception_Model():
@@ -344,4 +344,4 @@ def Inception_Model():
     model = Model(
         inputs=model.layers[0].input, outputs=model.layers[-3].output)
 
-    return model, input_size
+    return model
