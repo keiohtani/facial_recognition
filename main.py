@@ -1,4 +1,5 @@
 # https://sefiks.com/2018/08/06/deep-face-recognition-with-keras/
+# https://github.com/iwantooxxoox/Keras-OpenFace
 # https://medium.com/@sumantrajoshi/face-recognizer-application-using-a-deep-learning-model-python-and-keras-2873e9aa6ab3
 from model import *
 import cv2
@@ -8,9 +9,11 @@ from align import AlignDlib
 from keras.preprocessing.image import load_img, img_to_array
 from keras.applications.vgg16 import preprocess_input
 from cv2 import resize
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
-import visulization
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+
 
 
 class Facial_Recogition():
@@ -20,41 +23,45 @@ class Facial_Recogition():
         self.alg = alg
         self.photo_id = 0
         if architecture == 'Inception':
-            self.model = Inception_Model()
+            self.model = create_model()
             self.input_size = 96
         elif architecture == 'VGG16':
             self.model = VGG_face_model()
             self.input_size = 224
         else:
             print('A valid name for model needs to be passed.')
+            exit()
+
         if alg == 'svc':
-            self.skmodel = SVC(kernel='poly', degree=3)
+            self.skmodel = LinearSVC()
+            # self.skmodel = SVC(kernel='poly', degree=6)
             dir_path = 'svc_face_database'
-            X, y = self.load_data(dir_path)
-            self.skmodel.fit(X, y)
+            X_train, y_train = self.load_data(dir_path)
+            self.visualize(X_train, y_train)
+            self.skmodel.fit(X_train, y_train)
         elif alg == 'knn':
             self.skmodel = KNeighborsClassifier(n_neighbors=5)
             dir_path = 'svc_face_database'
             X, y = self.load_data(dir_path)
             self.skmodel.fit(X, y)
+            self.visualize(X, y)
         else:
             dir_path = 'face_database'
             self.image_dir_list = os.listdir(dir_path)
             self.np_dataset = self.load_database(dir_path)
 
         print('Database is loaded.')
-        self.alignment = AlignDlib('models/landmarks.dat')
+        self.alignment = AlignDlib('weights/landmarks.dat')
 
     def load_database(self, dir_path):
 
         dataset = []
         image_dir_list = os.listdir(dir_path)
-        if ('.DS_Store' in image_dir_list):
-            image_dir_list.remove('.DS_Store')
-            print('.DS_Store is removed.')
         for stored_image in image_dir_list:
-            img_representation = self.model.predict(
-                self.preprocess(os.path.join(dir_path, stored_image)))[0, :]
+            ext = os.path.splitext(stored_image)[1]
+            if ext == '.jpg' or ext == '.jpeg':
+                img_representation = self.model.predict(
+                    self.preprocess(os.path.join(dir_path, stored_image)))[0, :]
             dataset.append(img_representation)
 
         return np.array(dataset)
@@ -180,37 +187,52 @@ class Facial_Recogition():
 
         for name_folder_dir in name_folders_dir:
             name_list = os.listdir(os.path.join(dir_path, name_folder_dir))
-            if ('.DS_Store' in name_list):
-                name_list.remove('.DS_Store')
-            print('.DS_Store is removed.')
             for stored_image in name_list:
-                img_representation = self.model.predict(
-                    self.preprocess(os.path.join(dir_path, name_folder_dir, stored_image)))[0, :]
+                ext = os.path.splitext(stored_image)[1]
+                if ext == '.jpg' or ext == '.jpeg':
+                    img_representation = self.model.predict(
+                        self.preprocess(os.path.join(dir_path, name_folder_dir, stored_image)))[0, :]
                 X.append(img_representation)
                 y.append(name_folder_dir)
         return X, y
 
     def preprocess(self, image):
         if type(image) is str:
-            img = load_img(image, target_size=(
+            image = load_img(image, target_size=(
                 self.input_size, self.input_size))
-            img = img_to_array(img)
+            image = img_to_array(image)
         else:
             img = resize(image, (self.input_size, self.input_size))
-        img = np.expand_dims(img, axis=0)
+        image = (image / 255.).astype(np.float32)
+        image = np.expand_dims(image, axis=0)
         # img = preprocess_input(img) if self.architecture == 'VGG16' else img
-        return img
+        return image
 
     def test_svc(self, path):
         X, y = self.load_data(path)
         score = self.skmodel.score(X, y)
         print(score)
 
+    # http://krasserm.github.io/2018/02/07/deep-face-recognition/
+
+    def visualize(self, X, y):
+        X_embedded = TSNE(n_components=2).fit_transform(X)
+        targets = np.array(y)
+        for i, t in enumerate(set(targets)):
+            idx = targets == t
+            plt.scatter(X_embedded[idx, 0], X_embedded[idx, 1], label=t)
+
+        plt.legend(bbox_to_anchor=(1, 1))
+        # plt.title("Graph Title")
+        # plt.xlabel("X-axis")
+        # plt.ylabel("Y-axis")
+        plt.show()
+
 
 if __name__ == '__main__':
 
     test_image_path = 'test.jpg'
-    fr = Facial_Recogition(architecture='VGG16', alg='svc')
+    fr = Facial_Recogition(architecture='Inception', alg='svc')
     # fr.recognize_from_path(test_image_path)
-    fr.recognize()
-    # fr.test_svc('test_dataset')
+    fr.test_svc('test_dataset')
+    # fr.recognize()
