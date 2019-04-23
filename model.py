@@ -64,7 +64,7 @@ def VGG_face_model():
     model.add(Convolution2D(2622, (1, 1)))
     model.add(Flatten())
     model.add(Activation('softmax'))
-    model.load_weights('vgg_face_weights.h5')
+    model.load_weights('models/vgg_face_weights.h5')
     # remove the last two layers to get 2622 dimensions vector
     model = Model(
         inputs=model.layers[0].input, outputs=model.layers[-2].output)
@@ -340,8 +340,5 @@ def Inception_Model():
             model.get_layer(name).set_weights(weights_dict[name])
         elif model.get_layer(name) != None:
             model.get_layer(name).set_weights(weights_dict[name])
-    
-    model = Model(
-        inputs=model.layers[0].input, outputs=model.layers[-3].output)
 
     return model
