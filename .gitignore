@@ -2,8 +2,7 @@
 .DS_Store
 *.jpg
 *.h5
-.google_photos_client_secrets.json
-.google_photos_token.json
+*.json
 __pycache__
 id.txt
 models/
