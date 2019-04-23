@@ -28,8 +28,10 @@ def download_people_images():
             face_saver.save_face_image('temp.jpg')
         if 'nextPageToken' not in media_list:
             break
+
         print('next page')
         nextPageToken = media_list['nextPageToken']
+        print(nextPageToken)
         payload['pageToken'] = nextPageToken
 
     face_saver.save_photo_id()
