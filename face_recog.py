@@ -26,15 +26,16 @@ class Face_Saver:
         
         image = cv2.imread(path, cv2.IMREAD_COLOR)
         # Detect face and return bounding box (type: dlib.rectangle)
-        bounding_boxes = self.alignment.getAllFaceBoundingBoxes(image)
-        
-        for bounding_box in bounding_boxes:
-            # Transform image using specified face landmark indices and crop image to 224x224
-            cropped_image = self.alignment.align(224, image, bounding_box, landmarkIndices=AlignDlib.OUTER_EYES_AND_NOSE)
-            cv2.imwrite('cropped_face_images/' + str(self.photo_id) + '.jpg', cropped_image)
-            self.photo_id = self.photo_id + 1
+        if image is not None:
+            bounding_boxes = self.alignment.getAllFaceBoundingBoxes(image)
+            
+            for bounding_box in bounding_boxes:
+                # Transform image using specified face landmark indices and crop image to 224x224
+                cropped_image = self.alignment.align(224, image, bounding_box, landmarkIndices=AlignDlib.OUTER_EYES_AND_NOSE)
+                cv2.imwrite('cropped_face_images/' + str(self.photo_id) + '.jpg', cropped_image)
+                self.photo_id = self.photo_id + 1
 
-        print('Completed a photo')
+            print('Completed a photo')
                 
 
     def save_photo_id(self):
