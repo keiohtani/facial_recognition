@@ -52,7 +52,7 @@ class Facial_Recogition():
             exit()
 
         dir_path = 'training_images'
-        X_train, y_train = self.load_data(dir_path, visualize=visualize)
+        X_train, y_train, images = self.load_data(dir_path, visualize=visualize)
         self.skmodel.fit(X_train, y_train)
         self.alignment = AlignDlib('downloader/landmarks.dat')
 
@@ -105,8 +105,11 @@ class Facial_Recogition():
             cropped_image = self.alignment.align(
                 self.input_size, c_frame, bounding_box, landmarkIndices=AlignDlib.OUTER_EYES_AND_NOSE)
             cv2.rectangle(c_frame, (bounding_box.left(), bounding_box.top(
-            )), (bounding_box.right(), bounding_box.bottom()), BLUE, 2)
+                )), (bounding_box.right(), bounding_box.bottom()), BLUE, 2)
+            cropped_image = cropped_image[..., ::-1]
+            cropped_image = self.preprocess(cropped_image)
             name = self.predict(cropped_image)
+            print(name)
             cv2.putText(
                 c_frame, name, (bounding_box.left(), bounding_box.top()), cv2.FONT_HERSHEY_DUPLEX, SCALE, RED)
 
@@ -122,7 +125,7 @@ class Facial_Recogition():
         '''
 
         name = 'no_name'
-        test_representation = self.model.predict(self.preprocess(image))[0, :]
+        test_representation = self.model.predict(image)[0, :]
         if self.alg == 'svc':
             predictions = self.skmodel.decision_function(
                 [test_representation])
@@ -146,6 +149,7 @@ class Facial_Recogition():
         name_folders_dir = os.listdir(dir_path)
         X = []
         y = []
+        images = []
 
         if ('.DS_Store' in name_folders_dir):
             name_folders_dir.remove('.DS_Store')
@@ -157,16 +161,21 @@ class Facial_Recogition():
                 ext = os.path.splitext(stored_image)[1]
                 if ext == '.jpg' or ext == '.jpeg':
                     path = os.path.join(dir_path, name_folder_dir, stored_image)
-                    img_representation = self.model.predict(self.preprocess(path))[0, :]
+                    image = load_img(path, target_size=(
+                        self.input_size, self.input_size))
+                    image_array = img_to_array(image)
+                    preprocessed_image = self.preprocess(image_array)
+                    img_representation = self.model.predict(preprocessed_image)[0, :]
                     X.append(img_representation)
                     y.append(name_folder_dir)
+                    images.append(image)
 
         if visualize:
             self.visualize(X, y)
 
-        return X, y
+        return X, y, images
 
-    def preprocess(self, path):
+    def preprocess(self, image):
         '''
         preprocess image either passed as an argument or loaded from the path
         :param path: path to test images (folder needs to have folders) or np array of image
@@ -174,15 +183,6 @@ class Facial_Recogition():
         :return: np array of preprocessed image
         :rtype: numpy.ndarray Shape(input_size * input_size * 3, 1)
         '''
-        # when path is a path
-        if type(path) is str:
-            image = load_img(path, target_size=(
-                self.input_size, self.input_size))
-            image = img_to_array(image)
-        # when path is an image
-        else:
-            image = resize(path, (self.input_size, self.input_size))
-            image = image[..., ::-1]
         image = (image / 255.).astype(np.float32)
         image = np.expand_dims(image, axis=0)
         return image
@@ -193,9 +193,15 @@ class Facial_Recogition():
         :param path: path to test images (folder needs to have folders)
         :type path: str
         '''
-        X, y = self.load_data(path, visualize=False)
-        score = self.skmodel.score(X, y)
-        print(score)
+        X, y, images = self.load_data(path, visualize=False)
+        names = []
+        for image in images:
+            image_array = img_to_array(image)
+            preprocessed_image = self.preprocess(image_array)
+            names.append(self.predict(preprocessed_image))
+        match = set(names) & set(y)
+        accuracy = len(match) / len(y)
+        print(accuracy)
 
     # http://krasserm.github.io/2018/02/07/deep-face-recognition/
 
@@ -218,8 +224,8 @@ class Facial_Recogition():
 
 
 if __name__ == '__main__':
-    thresh = 0.3
+    thresh = 0.1
     fr = Facial_Recogition(architecture='Inception',
-                           alg='svc', threshold=thresh, visualize=False)
+                           alg='svc', threshold=thresh, visualize=True)
     fr.test('test_images')
-    # fr.recognize_real_time()
+    fr.recognize_real_time()
