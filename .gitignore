@@ -6,3 +6,4 @@
 __pycache__
 id.txt
 models/
+*.dat
