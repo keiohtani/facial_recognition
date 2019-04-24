@@ -52,7 +52,7 @@ class Facial_Recogition():
             exit()
 
         dir_path = 'training_images'
-        X_train, y_train = self.load_data(dir_path, visualize=True)
+        X_train, y_train = self.load_data(dir_path, visualize=visualize)
         self.skmodel.fit(X_train, y_train)
         self.alignment = AlignDlib('downloader/landmarks.dat')
 
@@ -121,7 +121,7 @@ class Facial_Recogition():
         :rtype: str
         '''
 
-        name = ''
+        name = 'no_name'
         test_representation = self.model.predict(self.preprocess(image))[0, :]
         if self.alg == 'svc':
             predictions = self.skmodel.decision_function(
@@ -156,10 +156,10 @@ class Facial_Recogition():
             for stored_image in name_list:
                 ext = os.path.splitext(stored_image)[1]
                 if ext == '.jpg' or ext == '.jpeg':
-                    img_representation = self.model.predict(
-                        self.preprocess(os.path.join(dir_path, name_folder_dir, stored_image)))[0, :]
-                X.append(img_representation)
-                y.append(name_folder_dir)
+                    path = os.path.join(dir_path, name_folder_dir, stored_image)
+                    img_representation = self.model.predict(self.preprocess(path))[0, :]
+                    X.append(img_representation)
+                    y.append(name_folder_dir)
 
         if visualize:
             self.visualize(X, y)
@@ -220,6 +220,6 @@ class Facial_Recogition():
 if __name__ == '__main__':
     thresh = 0.3
     fr = Facial_Recogition(architecture='Inception',
-                           alg='svc', threshold=thresh, visualize=True)
+                           alg='svc', threshold=thresh, visualize=False)
     fr.test('test_images')
-    fr.recognize_real_time()
+    # fr.recognize_real_time()
