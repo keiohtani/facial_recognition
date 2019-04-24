@@ -5,11 +5,10 @@ from model import *
 import cv2
 import os
 import numpy as np
-from align import AlignDlib
+from downloader.align import AlignDlib
 from keras.preprocessing.image import load_img, img_to_array
-from keras.applications.vgg16 import preprocess_input
 from cv2 import resize
-from sklearn.svm import SVC, LinearSVC
+from sklearn.svm import LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
@@ -18,7 +17,8 @@ import matplotlib.pyplot as plt
 
 class Facial_Recogition():
 
-    def __init__(self, architecture='VGG16', alg='svc'):
+    def __init__(self, architecture='Inception', alg='svc', threshold=0.4, visualize=False):
+        self.threshold = threshold
         self.architecture = architecture
         self.alg = alg
         self.photo_id = 0
@@ -34,20 +34,17 @@ class Facial_Recogition():
 
         if alg == 'svc':
             self.skmodel = LinearSVC()
-            dir_path = 'svc_face_database'
-            X_train, y_train = self.load_data(dir_path)
-            self.skmodel.fit(X_train, y_train)
         elif alg == 'knn':
-            self.skmodel = KNeighborsClassifier(n_neighbors=3)
-            dir_path = 'svc_face_database'
-            X, y = self.load_data(dir_path)
-            self.skmodel.fit(X, y)
+            self.skmodel = KNeighborsClassifier(n_neighbors=1)
         else:
             print('A valid name for alg needs to be passed.')
             exit()
 
+        dir_path = 'training_images'
+        X_train, y_train = self.load_data(dir_path, visualize=True)
+        self.skmodel.fit(X_train, y_train)
 
-        self.alignment = AlignDlib('weights/landmarks.dat')
+        self.alignment = AlignDlib('downloader/landmarks.dat')
 
     def recognize_real_time(self):
 
@@ -90,15 +87,21 @@ class Facial_Recogition():
             test_representation = self.model.predict(self.preprocess(cropped_image))[0, :]
             cv2.rectangle(c_frame, (bounding_box.left(), bounding_box.top(
             )), (bounding_box.right(), bounding_box.bottom()), BLUE, 2)
-            name = self.skmodel.predict([test_representation])
-            print(name[0])
-
-            cv2.putText(
-                c_frame, name[0], (bounding_box.left(), bounding_box.top()), cv2.FONT_HERSHEY_DUPLEX, SCALE, RED)
+            if self.alg == 'svc':
+                predictions = self.skmodel.decision_function([test_representation])
+            elif self.alg == 'knn':
+                predictions = self.skmodel.predict_proba([test_representation])
+            # print(predictions[0])
+            # print(predictions[0].min())
+            if predictions.max() > self.threshold:
+                name = self.skmodel.predict([test_representation])[0]
+                print(name)
+                cv2.putText(
+                    c_frame, name, (bounding_box.left(), bounding_box.top()), cv2.FONT_HERSHEY_DUPLEX, SCALE, RED)
 
         return c_frame
 
-    def load_data(self, dir_path):
+    def load_data(self, dir_path, visualize=False):
 
         name_folders_dir = os.listdir(dir_path)
         X = []
@@ -117,6 +120,8 @@ class Facial_Recogition():
                         self.preprocess(os.path.join(dir_path, name_folder_dir, stored_image)))[0, :]
                 X.append(img_representation)
                 y.append(name_folder_dir)
+        if visualize:
+            self.visualize(X,y)
         return X, y
 
     def preprocess(self, path):
@@ -134,7 +139,7 @@ class Facial_Recogition():
         return image
 
     def test_svc(self, path):
-        X, y = self.load_data(path)
+        X, y = self.load_data(path, visualize=False)
         score = self.skmodel.score(X, y)
         print(score)
 
@@ -148,14 +153,13 @@ class Facial_Recogition():
             plt.scatter(X_embedded[idx, 0], X_embedded[idx, 1], label=t)
 
         plt.legend(bbox_to_anchor=(1, 1))
-        # plt.title("Graph Title")
-        # plt.xlabel("X-axis")
-        # plt.ylabel("Y-axis")
         plt.show()
 
 
 if __name__ == '__main__':
-
-    fr = Facial_Recogition(architecture='Inception', alg='knn')
-    fr.test_svc('test_dataset')
-    fr.recognize_real_time()
+    # f = 0.1
+    # for i in range(0, 15):
+        thresh = 0.2
+        fr = Facial_Recogition(architecture='Inception', alg='svc', threshold=thresh, visualize=True)
+        fr.test_svc('test_images')
+        fr.recognize_real_time()
