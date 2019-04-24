@@ -14,10 +14,21 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 
 
-
 class Facial_Recogition():
 
     def __init__(self, architecture='Inception', alg='svc', threshold=0.4, visualize=False):
+        '''
+        initializing Facial_Recognition
+        :param architecture: architecture of NN model, either Inception or VGG16
+        :type architecture: str
+        :param alg: algrithm for sklearn model, either svc or knn
+        :type alg: str
+        :param threshold: threshold for sklearn prediction
+        :type threshold: float
+        :param visualize: whether to visualize training sets or not
+        :type visualize: bool
+        '''
+
         self.threshold = threshold
         self.architecture = architecture
         self.alg = alg
@@ -43,10 +54,12 @@ class Facial_Recogition():
         dir_path = 'training_images'
         X_train, y_train = self.load_data(dir_path, visualize=True)
         self.skmodel.fit(X_train, y_train)
-
         self.alignment = AlignDlib('downloader/landmarks.dat')
 
     def recognize_real_time(self):
+        '''
+        Starting a video capture
+        '''
 
         INTERVAL = 100
         DEVICE_ID = 0
@@ -64,14 +77,21 @@ class Facial_Recogition():
                 break
 
             end_flag, c_frame = cap.read()
-            c_frame = self.predict_indivisual(c_frame)
+            c_frame = self.draw_bounding_box(c_frame)
             cv2.imshow(WINDOW_NAME, c_frame)
 
         cv2.imwrite('last_frame.jpg', c_frame)
         cv2.destroyAllWindows()
         cap.release()
 
-    def predict_indivisual(self, c_frame):
+    def draw_bounding_box(self, c_frame):
+        '''
+        draw a bounding box and predict indivisual using scikit learn's model defined above
+        :param c_frame: an image taken from OpenCV's video capture
+        :type path: numpy.ndarray
+        :return: np array of preprocessed image
+        :rtype: numpy.ndarray
+        '''
 
         RED = (0, 0, 255)
         BLUE = (255, 0, 0)
@@ -84,24 +104,44 @@ class Facial_Recogition():
             # Transform image using specified face landmark indices and crop image to 96x96
             cropped_image = self.alignment.align(
                 self.input_size, c_frame, bounding_box, landmarkIndices=AlignDlib.OUTER_EYES_AND_NOSE)
-            test_representation = self.model.predict(self.preprocess(cropped_image))[0, :]
             cv2.rectangle(c_frame, (bounding_box.left(), bounding_box.top(
             )), (bounding_box.right(), bounding_box.bottom()), BLUE, 2)
-            if self.alg == 'svc':
-                predictions = self.skmodel.decision_function([test_representation])
-            elif self.alg == 'knn':
-                predictions = self.skmodel.predict_proba([test_representation])
-            # print(predictions[0])
-            # print(predictions[0].min())
-            if predictions.max() > self.threshold:
-                name = self.skmodel.predict([test_representation])[0]
-                print(name)
-                cv2.putText(
-                    c_frame, name, (bounding_box.left(), bounding_box.top()), cv2.FONT_HERSHEY_DUPLEX, SCALE, RED)
+            name = self.predict(cropped_image)
+            cv2.putText(
+                c_frame, name, (bounding_box.left(), bounding_box.top()), cv2.FONT_HERSHEY_DUPLEX, SCALE, RED)
 
         return c_frame
 
+    def predict(self, image):
+        '''
+        predict indivisual using scikit learn's model defined above
+        :param image: 
+        :type path: numpy.ndarray (width, height, 3)
+        :return: name of individual if the prediction was above threshold
+        :rtype: str
+        '''
+
+        name = ''
+        test_representation = self.model.predict(self.preprocess(image))[0, :]
+        if self.alg == 'svc':
+            predictions = self.skmodel.decision_function(
+                [test_representation])
+        elif self.alg == 'knn':
+            predictions = self.skmodel.predict_proba([test_representation])
+        if predictions.max() > self.threshold:
+            name = self.skmodel.predict([test_representation])[0]
+        return name
+
     def load_data(self, dir_path, visualize=False):
+        '''
+        Loading images from directory and embeding using NN model defined above
+        :param dir_path: path to images (folder needs to have folders)
+        :type dir_path: str
+        :return X: np array containing np arraies of image
+        :rtype X: numpy.ndarray Shape: (numitems, either 128 or 2622 depending on which model to use)
+        :return y: np array containing labels
+        :rtype y: numpy.ndarray Shape: (numitems, 1)
+        '''
 
         name_folders_dir = os.listdir(dir_path)
         X = []
@@ -120,11 +160,20 @@ class Facial_Recogition():
                         self.preprocess(os.path.join(dir_path, name_folder_dir, stored_image)))[0, :]
                 X.append(img_representation)
                 y.append(name_folder_dir)
+
         if visualize:
-            self.visualize(X,y)
+            self.visualize(X, y)
+
         return X, y
 
     def preprocess(self, path):
+        '''
+        preprocess image either passed as an argument or loaded from the path
+        :param path: path to test images (folder needs to have folders) or np array of image
+        :type path: str or numpy.ndarray Shape(width, height, 3)
+        :return: np array of preprocessed image
+        :rtype: numpy.ndarray Shape(input_size * input_size * 3, 1)
+        '''
         # when path is a path
         if type(path) is str:
             image = load_img(path, target_size=(
@@ -133,12 +182,17 @@ class Facial_Recogition():
         # when path is an image
         else:
             image = resize(path, (self.input_size, self.input_size))
-            image = image[...,::-1]
+            image = image[..., ::-1]
         image = (image / 255.).astype(np.float32)
         image = np.expand_dims(image, axis=0)
         return image
 
-    def test_svc(self, path):
+    def test(self, path):
+        '''
+        Load data from path and test the accuracy of the model
+        :param path: path to test images (folder needs to have folders)
+        :type path: str
+        '''
         X, y = self.load_data(path, visualize=False)
         score = self.skmodel.score(X, y)
         print(score)
@@ -146,6 +200,13 @@ class Facial_Recogition():
     # http://krasserm.github.io/2018/02/07/deep-face-recognition/
 
     def visualize(self, X, y):
+        '''
+        Visualize X and y 
+        :param X: np.ndarray of 128 dimensional array
+        :type X: numpy.ndarray
+        :param y: np.ndarray of labels
+        :type y: numpy.ndarray
+        '''
         X_embedded = TSNE(n_components=2).fit_transform(X)
         targets = np.array(y)
         for i, t in enumerate(set(targets)):
@@ -157,9 +218,8 @@ class Facial_Recogition():
 
 
 if __name__ == '__main__':
-    # f = 0.1
-    # for i in range(0, 15):
-        thresh = 0.2
-        fr = Facial_Recogition(architecture='Inception', alg='svc', threshold=thresh, visualize=True)
-        fr.test_svc('test_images')
-        fr.recognize_real_time()
+    thresh = 0.3
+    fr = Facial_Recogition(architecture='Inception',
+                           alg='svc', threshold=thresh, visualize=True)
+    fr.test('test_images')
+    fr.recognize_real_time()
