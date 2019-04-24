@@ -34,68 +34,22 @@ class Facial_Recogition():
 
         if alg == 'svc':
             self.skmodel = LinearSVC()
-            # self.skmodel = SVC(kernel='poly', degree=6)
             dir_path = 'svc_face_database'
             X_train, y_train = self.load_data(dir_path)
-            self.visualize(X_train, y_train)
             self.skmodel.fit(X_train, y_train)
         elif alg == 'knn':
-            self.skmodel = KNeighborsClassifier(n_neighbors=5)
+            self.skmodel = KNeighborsClassifier(n_neighbors=3)
             dir_path = 'svc_face_database'
             X, y = self.load_data(dir_path)
             self.skmodel.fit(X, y)
-            self.visualize(X, y)
         else:
-            dir_path = 'face_database'
-            self.image_dir_list = os.listdir(dir_path)
-            self.np_dataset = self.load_database(dir_path)
+            print('A valid name for alg needs to be passed.')
+            exit()
 
-        print('Database is loaded.')
+
         self.alignment = AlignDlib('weights/landmarks.dat')
 
-    def load_database(self, dir_path):
-
-        dataset = []
-        image_dir_list = os.listdir(dir_path)
-        for stored_image in image_dir_list:
-            ext = os.path.splitext(stored_image)[1]
-            if ext == '.jpg' or ext == '.jpeg':
-                img_representation = self.model.predict(
-                    self.preprocess(os.path.join(dir_path, stored_image)))[0, :]
-            dataset.append(img_representation)
-
-        return np.array(dataset)
-
-    def find_distance(self, test_representation):
-        if self.alg == 'cosine':
-            epsilon = 0.023 if self.architecture == 'Inception' else 0.3
-            a = np.matmul(self.np_dataset, test_representation)
-            b = np.sum(self.np_dataset * self.np_dataset, axis=1)
-            c = np.sum(np.multiply(test_representation, test_representation))
-            distance = 1 - (a / (np.sqrt(b) * np.sqrt(c)))
-
-        elif self.alg == 'euclidean':
-            epsilon = 2.5 if self.architecture == 'Inception' else 120
-            euclidean_distance = self.np_dataset - test_representation
-            euclidean_distance = np.sum(
-                euclidean_distance * euclidean_distance, axis=1)
-            distance = np.sqrt(euclidean_distance)
-
-        else:
-            print('Pass either cosine or euclidean for distance')
-
-        if distance.min() < epsilon:
-            index = np.argmin(distance)
-            name = self.image_dir_list[index]
-            return name
-
-    def recognize_from_path(self, image_path):
-        test_representation = self.model.predict(
-            self.preprocess(image_path))[0, :]
-        name = self.find_distance(test_representation)
-        print(name)
-
-    def recognize(self):
+    def recognize_real_time(self):
 
         INTERVAL = 100
         DEVICE_ID = 0
@@ -113,40 +67,14 @@ class Facial_Recogition():
                 break
 
             end_flag, c_frame = cap.read()
-            if self.alg == 'svc' or 'knn':
-                c_frame = self.predict(c_frame)
-            else:
-                c_frame = self.predict_by_distance(c_frame)
+            c_frame = self.predict_indivisual(c_frame)
             cv2.imshow(WINDOW_NAME, c_frame)
 
         cv2.imwrite('last_frame.jpg', c_frame)
         cv2.destroyAllWindows()
         cap.release()
 
-    def predict_by_distance(self, c_frame):
-
-        RED = (0, 0, 255)
-        BLUE = (255, 0, 0)
-        SCALE = 1
-
-        # Detect face and return bounding box (type: dlib.rectangle)
-        bounding_box = self.alignment.getLargestFaceBoundingBox(c_frame)
-
-        if bounding_box != None:
-            cv2.rectangle(c_frame, (bounding_box.left(), bounding_box.top(
-            )), (bounding_box.right(), bounding_box.bottom()), BLUE, 2)
-            # Transform image using specified face landmark indices and crop image to 96x96
-            cropped_image = self.alignment.align(
-                self.input_size, c_frame, bounding_box, landmarkIndices=AlignDlib.OUTER_EYES_AND_NOSE)
-            test_representation = self.model.predict(
-                self.preprocess(cropped_image))[0, :]
-            name = self.find_distance(test_representation)
-            cv2.putText(
-                c_frame, name, (bounding_box.left(), bounding_box.top()), cv2.FONT_HERSHEY_DUPLEX, SCALE, RED)
-
-        return c_frame
-
-    def predict(self, c_frame):
+    def predict_indivisual(self, c_frame):
 
         RED = (0, 0, 255)
         BLUE = (255, 0, 0)
@@ -159,14 +87,9 @@ class Facial_Recogition():
             # Transform image using specified face landmark indices and crop image to 96x96
             cropped_image = self.alignment.align(
                 self.input_size, c_frame, bounding_box, landmarkIndices=AlignDlib.OUTER_EYES_AND_NOSE)
-            test_representation = self.model.predict(
-                self.preprocess(cropped_image))[0, :]
-            # path = os.path.join('realtime_images', str(self.photo_id) + '.jpg')
-            # cv2.imwrite(path, cropped_image)
-            # self.photo_id = self.photo_id + 1
+            test_representation = self.model.predict(self.preprocess(cropped_image))[0, :]
             cv2.rectangle(c_frame, (bounding_box.left(), bounding_box.top(
             )), (bounding_box.right(), bounding_box.bottom()), BLUE, 2)
-            # name = self.find_distance(test_representation)
             name = self.skmodel.predict([test_representation])
             print(name[0])
 
@@ -196,16 +119,18 @@ class Facial_Recogition():
                 y.append(name_folder_dir)
         return X, y
 
-    def preprocess(self, image):
-        if type(image) is str:
-            image = load_img(image, target_size=(
+    def preprocess(self, path):
+        # when path is a path
+        if type(path) is str:
+            image = load_img(path, target_size=(
                 self.input_size, self.input_size))
             image = img_to_array(image)
+        # when path is an image
         else:
-            img = resize(image, (self.input_size, self.input_size))
+            image = resize(path, (self.input_size, self.input_size))
+            image = image[...,::-1]
         image = (image / 255.).astype(np.float32)
         image = np.expand_dims(image, axis=0)
-        # img = preprocess_input(img) if self.architecture == 'VGG16' else img
         return image
 
     def test_svc(self, path):
@@ -231,8 +156,6 @@ class Facial_Recogition():
 
 if __name__ == '__main__':
 
-    test_image_path = 'test.jpg'
-    fr = Facial_Recogition(architecture='Inception', alg='svc')
-    # fr.recognize_from_path(test_image_path)
+    fr = Facial_Recogition(architecture='Inception', alg='knn')
     fr.test_svc('test_dataset')
-    # fr.recognize()
+    fr.recognize_real_time()
