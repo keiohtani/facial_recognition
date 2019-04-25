@@ -2,6 +2,7 @@ import signal
 from PIL import Image
 import cv2
 from align import AlignDlib
+import os
 
 
 class Face_Saver:
@@ -32,7 +33,8 @@ class Face_Saver:
             for bounding_box in bounding_boxes:
                 # Transform image using specified face landmark indices and crop image to 224x224
                 cropped_image = self.alignment.align(224, image, bounding_box, landmarkIndices=AlignDlib.OUTER_EYES_AND_NOSE)
-                cv2.imwrite(str(1000000) + '.jpg', cropped_image)
+                path = os.path.join('cropped_face_images', str(self.photo_id) + '.jpg')
+                cv2.imwrite(path, cropped_image)
                 self.photo_id = self.photo_id + 1
 
             print('Completed a photo')
