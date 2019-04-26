@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 class Facial_Recogition():
 
-    def __init__(self, architecture='Inception', alg='svc', threshold=0.4, visualize=False, n_neighbors=1):
+    def __init__(self, architecture='Inception', alg='svc', threshold=0.4, visualize=False, n_neighbors=1, capture=True):
         '''
         initializing Facial_Recognition
         :param architecture: architecture of NN model, either Inception or VGG16
@@ -28,11 +28,14 @@ class Facial_Recogition():
         :param visualize: whether to visualize training sets or not
         :type visualize: bool
         '''
+        self.capture = capture
         self.n_neighbors = n_neighbors
         self.threshold = threshold
         self.architecture = architecture
         self.alg = alg
-        self.photo_id = 0
+        with open('downloader/id.txt') as f:
+            self.photo_id = int(f.readline())
+            print('Photo id', self.photo_id, 'is loaded.')
         if architecture == 'Inception':
             self.model = create_model()
             self.input_size = 96
@@ -79,6 +82,10 @@ class Facial_Recogition():
             end_flag, c_frame = cap.read()
             c_frame = self.draw_bounding_box(c_frame)
             cv2.imshow(WINDOW_NAME, c_frame)
+            
+        with open('downloader/id.txt', 'w') as f:
+            f.write(str(self.photo_id))
+            print('Photo id', self.photo_id, 'is saved.')
 
         cv2.imwrite('last_frame.jpg', c_frame)
         cv2.destroyAllWindows()
@@ -104,6 +111,9 @@ class Facial_Recogition():
             # Transform image using specified face landmark indices and crop image to 96x96
             cropped_image = self.alignment.align(
                 self.input_size, c_frame, bounding_box, landmarkIndices=AlignDlib.OUTER_EYES_AND_NOSE)
+            if self.capture:
+                path = os.path.join('downloader/cropped_face_images', str(self.photo_id) + '.jpg')
+                cv2.imwrite(path, cropped_image)
             cv2.rectangle(c_frame, (bounding_box.left(), bounding_box.top(
                 )), (bounding_box.right(), bounding_box.bottom()), BLUE, 2)
             cropped_image = cropped_image[..., ::-1]
@@ -112,6 +122,7 @@ class Facial_Recogition():
             print(name)
             cv2.putText(
                 c_frame, name, (bounding_box.left(), bounding_box.top()), cv2.FONT_HERSHEY_DUPLEX, SCALE, RED)
+            self.photo_id = self.photo_id + 1
 
         return c_frame
 
