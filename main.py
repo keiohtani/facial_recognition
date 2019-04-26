@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 class Facial_Recogition():
 
-    def __init__(self, architecture='Inception', alg='svc', threshold=0.4, visualize=False):
+    def __init__(self, architecture='Inception', alg='svc', threshold=0.4, visualize=False, n_neighbors=1):
         '''
         initializing Facial_Recognition
         :param architecture: architecture of NN model, either Inception or VGG16
@@ -28,7 +28,7 @@ class Facial_Recogition():
         :param visualize: whether to visualize training sets or not
         :type visualize: bool
         '''
-
+        self.n_neighbors = n_neighbors
         self.threshold = threshold
         self.architecture = architecture
         self.alg = alg
@@ -46,7 +46,7 @@ class Facial_Recogition():
         if alg == 'svc':
             self.skmodel = LinearSVC()
         elif alg == 'knn':
-            self.skmodel = KNeighborsClassifier(n_neighbors=1)
+            self.skmodel = KNeighborsClassifier(n_neighbors=n_neighbors)
         else:
             print('A valid name for alg needs to be passed.')
             exit()
@@ -129,10 +129,15 @@ class Facial_Recogition():
         if self.alg == 'svc':
             predictions = self.skmodel.decision_function(
                 [test_representation])
+            if predictions.max() > self.threshold:
+                name = self.skmodel.predict([test_representation])[0]
         elif self.alg == 'knn':
-            predictions = self.skmodel.predict_proba([test_representation])
-        if predictions.max() > self.threshold:
-            name = self.skmodel.predict([test_representation])[0]
+            # predictions = self.skmodel.predict_proba([test_representation])
+            distances, indices = self.skmodel.kneighbors(X=[test_representation], n_neighbors=n_neighbors, return_distance=True)
+            min_dis = distances.min()
+            print(min_dis)
+            if min_dis < self.threshold:
+                name = self.skmodel.predict([test_representation])[0]
         return name
 
     def load_data(self, dir_path, visualize=False):
@@ -202,6 +207,7 @@ class Facial_Recogition():
         match = set(names) & set(y)
         accuracy = len(match) / len(y)
         print(accuracy)
+        return accuracy
 
     # http://krasserm.github.io/2018/02/07/deep-face-recognition/
 
@@ -223,9 +229,29 @@ class Facial_Recogition():
         plt.show()
 
 
+def grid_search():
+    thresh = 0.5
+    n_neighbors = 1
+    temp = 0.1
+    li = []
+    big_list = []
+    for j in range(1, 10):
+        for i in range(10):
+            thresh = temp * i
+            fr = Facial_Recogition(architecture='Inception',
+                                alg='knn', threshold=thresh, visualize=False, n_neighbors=j)
+            accuracy = fr.test('test_images')
+            li.append(accuracy)
+        big_list.append(li)
+    print(big_list)
+
 if __name__ == '__main__':
-    thresh = 0.1
+
+    # grid_search()
+
+    thresh = 0.6
+    n_neighbors = 1
     fr = Facial_Recogition(architecture='Inception',
-                           alg='svc', threshold=thresh, visualize=True)
-    fr.test('test_images')
+            alg='knn', threshold=thresh, visualize=False, n_neighbors=n_neighbors)
+    # accuracy = fr.test('test_images')
     fr.recognize_real_time()
