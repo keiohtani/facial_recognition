@@ -7,3 +7,4 @@ __pycache__
 id.txt
 models/
 *.dat
+.python-version
